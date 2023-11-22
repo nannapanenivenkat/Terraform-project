@@ -55,7 +55,7 @@ resource "aws_security_group" "mysec" {
   vpc_id      = aws_vpc.myvpc.id
 
   ingress {
-    description      = "TLS from VPC"
+    description      = "SSH"
     from_port        = 22
     to_port          = 22
     protocol         = "tcp"
@@ -64,7 +64,7 @@ resource "aws_security_group" "mysec" {
   }
 
     ingress {
-    description      = "TLS from VPC"
+    description      = "HTTP from VPC"
     from_port        = 80
     to_port          = 80
     protocol         = "tcp"
@@ -88,41 +88,14 @@ resource "aws_security_group" "mysec" {
 
 #creating bucket and assigning public access
 resource "aws_s3_bucket" "example" {
-  bucket = "my-tf-test-bucket"
-
-}
-
-resource "aws_s3_bucket_ownership_controls" "example" {
-  bucket = aws_s3_bucket.example.id
-  rule {
-    object_ownership = "BucketOwnerPreferred"
-  }
-}
-
-resource "aws_s3_bucket_public_access_block" "example" {
-  bucket = aws_s3_bucket.example.id
-
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
-}
-
-resource "aws_s3_bucket_acl" "example" {
-  depends_on = [
-    aws_s3_bucket_ownership_controls.example,
-    aws_s3_bucket_public_access_block.example,
-  ]
-
-  bucket = aws_s3_bucket.example.id
-  acl    = "public-read"
+  bucket = "terrbucksample2023xyz"
 }
 
 
 #creating ec2 instance
-resource "aws_ec2_instance" "webserver1" {
-  ami                     = "ami-0dcc1e21636832c5d"
-  instance_type           = var.instance_type
+resource "aws_instance" "webserver1" {
+  ami                     = "ami-0fa1ca9559f1892ec"
+  instance_type           = "t2.micro"
   vpc_security_group_ids  = [aws_security_group.mysec.id]
   key_name                = var.key_pair
   associate_public_ip_address = true
@@ -131,9 +104,9 @@ resource "aws_ec2_instance" "webserver1" {
 
 }
 
-resource "aws_ec2_instance" "webserver2" {
-  ami                     = "ami-0dcc1e21636832c5d"
-  instance_type           = var.instance_type
+resource "aws_instance" "webserver2" {
+  ami                     = "ami-0fa1ca9559f1892ec"
+  instance_type           = "t2.micro"
   vpc_security_group_ids  = [aws_security_group.mysec.id]
   key_name                = var.key_pair
   associate_public_ip_address = true
@@ -173,7 +146,7 @@ resource "aws_lb_target_group" "tgtest" {
 
 resource "aws_alb_target_group_attachment" "attach1" {
     target_group_arn  = aws_lb_target_group.tgtest.arn
-    target_id         = aws_ec2_instance.webserver1.id
+    target_id         = aws_instance.webserver1.id
     port              = 80
 
   
@@ -181,7 +154,7 @@ resource "aws_alb_target_group_attachment" "attach1" {
 
 resource "aws_alb_target_group_attachment" "attach2" {
     target_group_arn  = aws_lb_target_group.tgtest.arn
-    target_id         = aws_ec2_instance.webserver1.id
+    target_id         = aws_instance.webserver2.id
     port              = 80
 
   
@@ -189,8 +162,8 @@ resource "aws_alb_target_group_attachment" "attach2" {
 
 resource "aws_lb_listener" "front_end" {
   load_balancer_arn = aws_lb.lbtest.arn
-  port              = "443"
-  protocol          = "HTTPS"
+  port              = 80
+  protocol          = "HTTP"
 
   default_action {
     type             = "forward"
